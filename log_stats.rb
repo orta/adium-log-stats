@@ -7,7 +7,7 @@ class Conversation
   attr_accessor :owner, :recipient, :date, :my_message_count, :their_message_count, :total_message_count
   
   def to_s
-    "#{date} - T #{ their_message_count } | Y #{ my_message_count } | #{ total_message_count }"
+    "#{date} - T #{ their_message_count } | Y #{ my_message_count } | #{ total_message_count } ( #{ owner } + #{ recipient })"
   end
   
   def self.chat_filename_to_datetime_string file
@@ -29,7 +29,6 @@ profiles.each do |profile|
     account_name = File.basename(account).split(".")[1..-1].join(".")
     puts "grabbing logs from  #{account_name}"  if @debug
     
-    
     account.each do |contact| 
       next if contact.class != Pow::Directory
       puts "reading conversations with  #{File.basename(contact)}"  if @debug
@@ -47,8 +46,39 @@ profiles.each do |profile|
         chat.my_message_count = doc.css("message[sender='#{ account_name }']").count
         chat.their_message_count = doc.css("message[sender!='#{ account_name }']").count
         chat.total_message_count = doc.css("message").count
-        puts chat 
+        chat.owner = account_name
+        
+        recipient_bits = doc.css("message[sender!='#{ account_name }']").first
+        chat.recipient = recipient_bits.attr("alias")  if recipient_bits
+        
+        puts chat if @debug
+        @conversations << chat
       end    
     end
   end
 end
+
+def most_talked_to_ever
+  @users = {}
+  
+  @conversations.each do |chat|
+    if @users[chat.recipient]
+      @users[chat.recipient] += chat.total_message_count 
+    else
+      @users[chat.recipient] = chat.total_message_count 
+    end
+  end
+  
+  @users =  @users.to_a.sort { |a,b| a.last <=> b.last }
+  puts @users
+  
+end
+
+def most_talked_by_day
+
+  
+  
+end
+
+most_talked_to_ever
+
