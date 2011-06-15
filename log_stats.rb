@@ -2,6 +2,7 @@ require 'rubygems'
 require 'pow'
 require 'date'
 require 'nokogiri'
+require 'set'
 
 class Conversation
   attr_accessor :owner, :recipient, :date, :my_message_count, :their_message_count, :total_message_count
@@ -13,6 +14,18 @@ class Conversation
   def self.chat_filename_to_datetime_string file
     file.split("(")[1][0..-2]
   end
+  
+  def same_day? conversation
+    return false if conversation.date.year != self.date.year
+    return false if conversation.date.month != self.date.month
+    return false if conversation.date.day != self.date.day
+    true
+  end
+  
+  def <=> a
+    self.date <=> a.date
+  end
+  
 end
 
 @conversations = []
@@ -60,7 +73,7 @@ end
 
 def most_talked_to_ever
   @users = {}
-  
+
   @conversations.each do |chat|
     if @users[chat.recipient]
       @users[chat.recipient] += chat.total_message_count 
@@ -70,15 +83,29 @@ def most_talked_to_ever
   end
   
   @users =  @users.to_a.sort { |a,b| a.last <=> b.last }
-  puts @users
-  
+  puts @users  
 end
 
 def most_talked_by_day
-
+  @sorted_conversations = @conversations.sort { |a,b| a.date <=> b.date }
+  day_top_chatters = []
   
+  @sorted_conversations.each do |chat|
+    #for each conversation get all chats on the same day
+    same_day_chats =  @conversations.select { |compared_chat|
+      chat.same_day?(compared_chat) && compared_chat != chat
+    }
+    top_chat = same_day_chats.sort { |a,b| a.date <=> b.date }.first
+    day_top_chatters <<  top_chat
+  end
   
+  ordered_chatters = SortedSet.new( day_top_chatters.compact.sort{ |a,b| a.date <=> b.date } )
+  ordered_chatters.each do |chat|
+    puts "#{ chat.date } - #{ chat.recipient } (#{chat.total_message_count})"
+  end
 end
 
+puts "daily stats-ish"
+most_talked_by_day
+puts "most talked to stats"
 most_talked_to_ever
-
