@@ -4,10 +4,10 @@ require 'date'
 require 'nokogiri'
 
 class Conversation
-  attr_accessor :owner, :date, :num_of_messages
+  attr_accessor :owner, :recipient, :date, :my_message_count, :their_message_count, :total_message_count
   
   def to_s
-    "#{owner} - #{date} - #{num_of_messages}"
+    "#{date} - T #{ their_message_count } | Y #{ my_message_count } | #{ total_message_count }"
   end
   
   def self.chat_filename_to_datetime_string file
@@ -26,11 +26,14 @@ profiles.each do |profile|
   logs = Pow("#{profile}/Logs")
   logs.each do |account| 
     next if account.class != Pow::Directory
-    puts "grabbing logs from  #{File.basename(account)}"  if @debug
+    account_name = File.basename(account).split(".")[1..-1].join(".")
+    puts "grabbing logs from  #{account_name}"  if @debug
+    
     
     account.each do |contact| 
       next if contact.class != Pow::Directory
       puts "reading conversations with  #{File.basename(contact)}"  if @debug
+      
       contact.each do |conversation|    
         next if conversation.class != Pow::Directory
 
@@ -41,9 +44,10 @@ profiles.each do |profile|
         puts "looking at conversation on #{chat.date.to_s}" if @debug 
         xml_path = conversation.children[0]
         doc = Nokogiri::XML(open(xml_path))
-        chat.num_of_messages = doc.css("message").count
-        
-        puts chat
+        chat.my_message_count = doc.css("message[sender='#{ account_name }']").count
+        chat.their_message_count = doc.css("message[sender!='#{ account_name }']").count
+        chat.total_message_count = doc.css("message").count
+        puts chat 
       end    
     end
   end
