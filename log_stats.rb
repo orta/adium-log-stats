@@ -5,10 +5,10 @@ require 'nokogiri'
 require 'set'
 
 class Conversation
-  attr_accessor :owner, :recipient, :date, :my_message_count, :their_message_count, :total_message_count
+  attr_accessor :owner, :recipient, :date, :my_message_count, :their_message_count, :total_message_count, :filepath
   
   def to_s
-    "#{date} - T #{ their_message_count } | Y #{ my_message_count } | #{ total_message_count } ( #{ owner } + #{ recipient })"
+    "#{date} - T #{ their_message_count } | Y #{ my_message_count } | #{ total_message_count } ( #{ owner } + #{ recipient }) "
   end
   
   def self.chat_filename_to_datetime_string file
@@ -60,10 +60,19 @@ profiles.each do |profile|
         chat.their_message_count = doc.css("message[sender!='#{ account_name }']").count
         chat.total_message_count = doc.css("message").count
         chat.owner = account_name
-        
+        chat.filepath = conversation
+
         recipient_bits = doc.css("message[sender!='#{ account_name }']").first
-        chat.recipient = recipient_bits.attr("alias")  if recipient_bits
-        
+        if recipient_bits
+          if recipient_bits.attr("alias") 
+            chat.recipient = recipient_bits.attr("alias")             
+          else
+            chat.recipient = recipient_bits.attr("sender")
+          end
+        else
+          chat.recipient = File.basename(contact)
+        end
+      
         puts chat if @debug
         @conversations << chat
       end    
@@ -93,7 +102,7 @@ def most_talked_by_day
   @sorted_conversations.each do |chat|
     #for each conversation get all chats on the same day
     same_day_chats =  @conversations.select { |compared_chat|
-      chat.same_day?(compared_chat) && compared_chat != chat
+      chat.same_day?(compared_chat)
     }
     top_chat = same_day_chats.sort { |a,b| a.date <=> b.date }.first
     day_top_chatters <<  top_chat
