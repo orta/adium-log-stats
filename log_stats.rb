@@ -29,7 +29,7 @@ class Conversation
 end
 
 @conversations = []
-@debug = false
+@debug = true
 
 profiles = Pow( Pow("~/Library/Application Support/Adium 2.0/Users") )
 profiles.each do |profile| 
@@ -39,8 +39,13 @@ profiles.each do |profile|
   logs = Pow("#{profile}/Logs")
   logs.each do |account| 
     next if account.class != Pow::Directory
+    next if File.basename(account).match(/Twitter/)
+    next if File.basename(account).match(/IRC/)
+    
     account_name = File.basename(account).split(".")[1..-1].join(".")
-    puts "grabbing logs from  #{account_name}"  if @debug
+    account_name = File.basename(account).split(".")[1] unless account_name
+    
+    puts "grabbing logs from #{account_name}"  if @debug
     
     account.each do |contact| 
       next if contact.class != Pow::Directory
@@ -92,7 +97,7 @@ def most_talked_to_ever
   end
   
   @users =  @users.to_a.sort { |a,b| a.last <=> b.last }
-  puts @users  
+  puts @users
 end
 
 def most_talked_by_day
@@ -114,7 +119,12 @@ def most_talked_by_day
   end
 end
 
-puts "daily stats-ish"
+puts "-----------------------------------------------"
+puts "   daily stats"
+puts "-----------------------------------------------"
 most_talked_by_day
-puts "most talked to stats"
+
+puts "-----------------------------------------------"
+puts "   most talked to stats"
+puts "-----------------------------------------------"
 most_talked_to_ever
